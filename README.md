@@ -19,6 +19,7 @@ NetworkManager(`nmcli`)를 쓰는 카드용이다. 로봇의 `~/lekiwi_net`에 �
 7. [환경 변수](#7-환경-변수)
 8. [알아둘 점](#8-알아둘-점)
 9. [관련 저장소](#9-관련-저장소)
+10. [이관 · 점검 도구와 시험](#10-이관--점검-도구와-시험)
 
 ---
 
@@ -36,12 +37,15 @@ NetworkManager(`nmcli`)를 쓰는 카드용이다. 로봇의 `~/lekiwi_net`에 �
 | `net_status.sh` | 지금 켜진 연결과 IPv4 주소 보기 |
 | `clone_init.sh` | 복제한 카드마다 **한 번**: 호스트 이름 · 킷 번호 · AP 채널 · 공유기 고정 IP 설정 |
 | `nm_kf.py` | NetworkManager 설정 파일(keyfile) 편집기. 위 스크립트가 `nmcli con modify` 대신 쓴다 |
+| `bashrc_net.sh` | `.bashrc`에 넣는 짧은 명령 블록 (아래 2장) |
+| `image_ready_check.sh` | 이미지를 뜨기 직전 골든 카드 점검 (읽기만, 10장) |
+| `provision_ap_mode.sh` · `rollback_ap_mode.sh` | 옛 netplan 세대 카드를 이 방식으로 한 번 옮기기 · 되돌리기 (10장) |
 
 ---
 
 ## 2. 짧은 명령 (.bashrc)
 
-이미지에는 `.bashrc`에 짧은 이름이 들어 있다 (정의는 `lekiwi-gui-ap_mode/web_operator/robot_net/bashrc_net.sh`).
+이미지에는 `.bashrc`에 짧은 이름이 들어 있다 (정의는 이 저장소의 `bashrc_net.sh`).
 이 문서와 스크립트 주석의 명령 이름은 아래 표를 따른다.
 
 | 짧은 명령 | 실제로 부르는 것 |
@@ -107,7 +111,7 @@ source ~/.bashrc
 ```
 
 `# >>> lekiwi_net >>>` · `# <<< lekiwi_net <<<` 줄은 지우지 않는다. 설치 스크립트(`provision_ap_mode.sh`)가 `# >>> lekiwi_net >>>` 줄로 "이미 들어 있나"를 확인하고, 있으면 다시 붙이지 않는다.
-정의의 원본은 `lekiwi-gui-ap_mode/web_operator/robot_net/bashrc_net.sh`이므로, 고칠 때는 그쪽과 이 블록을 같이 맞춘다.
+정의의 원본은 이 저장소의 `bashrc_net.sh`이므로, 고칠 때는 그 파일과 이 블록을 같이 맞춘다.
 
 `.bashrc`에 넣지 않았다면 `~/lekiwi_net/run_wifi.sh ...`처럼 경로로 부른다.
 
@@ -253,5 +257,36 @@ Physical Labs 앱이 `run_wifi.sh` · `set_ip.sh` · `set_dhcp.sh`의 출력을 
 
 ## 9. 관련 저장소
 
-- `lekiwi-gui-ap_mode` — `web_operator/robot_net/bashrc_net.sh`(짧은 명령 정의)와 `image_ready_check.sh`(이미지를 뜨기 전 점검)가 이 폴더를 `~/lekiwi_net` 경로로 부른다
-- `lekiwi_ws` — 로봇의 ROS 2 워크스페이스
+로봇 홈의 폴더 하나가 저장소 하나다.
+
+| 로봇 폴더 | 저장소 | 하는 일 |
+|---|---|---|
+| `~/lekiwi_net` | [roboseasy/lekiwi_net](https://github.com/roboseasy/lekiwi_net) (이 저장소) | 와이파이 · AP 전환 |
+| `~/lekiwi_ws` | [roboseasy/lekiwi_ws](https://github.com/roboseasy/lekiwi_ws) | ROS 2 워크스페이스 (모터 · 카메라 · ZMQ 데이터 노드) |
+| `~/lekiwi_web_operator` | [roboseasy/lekiwi_web_operator](https://github.com/roboseasy/lekiwi_web_operator) | 게이트웨이 `:8080` · 웹 화면. 네트워크 화면이 `~/lekiwi_net`의 `run_wifi.sh` · `run_ap.sh` · `set_ap.sh`를 `sudo -n`으로 부른다 |
+
+PC 쪽: 리더암으로 웹 화면에서 팔을 조작할 때만 [roboseasy/lekiwi_pc_agent](https://github.com/roboseasy/lekiwi_pc_agent)를 노트북에 받는다.
+
+---
+
+## 10. 이관 · 점검 도구와 시험
+
+| 스크립트 | 언제 · 어떻게 |
+|---|---|
+| `image_ready_check.sh` | 이미지를 뜨기 직전 골든 카드에서 `sudo ~/lekiwi_net/image_ready_check.sh`. 읽기만 한다. 한 줄에 `[OK\|WARN\|FAIL] 항목`, 끝에 `요약: FAIL n · WARN m`, FAIL이 있으면 종료 1. 공유기 비밀번호(줄 모양과 실제 값) · 남은 개인키 · `authorized_keys` · 셸 기록 · 옛 위치 파일 · 부트 파티션 · NetworkManager 상태를 본다. 비밀번호 · 키는 값이 아니라 파일 이름만 보인다 |
+| `provision_ap_mode.sh [--dry-run] [--mode wifi\|ap] [--kit N \| --dhcp] [--ap-ssid NAME] [--hold-nm]` | 옛 netplan 세대 카드에서 한 번. NetworkManager 세대로 옮긴다 (패키지 · 이 폴더 스크립트 설치 · 프로필 · `.bashrc` 블록). 저장소를 `~/lekiwi_net`이 아닌 곳(예: `~/robot_net_staging`)에 받아 랜선으로 실행한다 — 스크립트를 `~/lekiwi_net`에 설치하기 때문이다. 먼저 `--dry-run`. 종료 0 성공 · 3 사전 점검 거절 (안 바뀜) · 4 바꾼 뒤 실패 (롤백함) · 5 롤백도 다 되지 않음 (유선으로 들어와 고친다) |
+| `rollback_ap_mode.sh [백업 tar]` | 위 이관을 되돌린다 |
+
+복구:
+
+- **유선이 늘 길이다.** 어떤 스크립트도 `eth0`의 설정 · 주소를 바꾸지 않는다. 와이파이 설정이 꼬여도 랜선으로 들어와 고친다. 다만 이관 · 롤백의 `netplan apply`가 eth0 DHCP를 다시 해 유선 ssh가 잠깐 끊길 수 있어 `provision_ap_mode.sh`는 `sudo setsid nohup … &`로 돌린다.
+- **자동 롤백:** 이관은 바꾸기 전에 `/var/backups/lekiwi_net_<날짜시각>.tar.gz`(root 600, 공유기 비밀번호가 들어 있다)를 만들고 180초 뒤 롤백 타이머(`lekiwi-net-rollback`)를 건다. 접속을 확인했으면 `sudo systemctl stop lekiwi-net-rollback.timer`.
+- **백업 파일은 로봇에 남기지 않는다.** PC로 옮겨 sha256을 맞춘 뒤 로봇에서 `sudo shred -u`로 지운다 (이미지에 공유기 비밀번호가 실리지 않게).
+
+시험 (PC에서, 이 PC의 네트워크와 `/etc`는 건드리지 않는다 — 가짜 `PATH`의 stub과 임시 폴더에서만 돈다):
+
+```bash
+python3 -m pytest -q   # pytest 가 든 파이썬. libnm 시험 하나는 python3-gi 가 있어야 돈다 (없으면 건너뜀)
+```
+
+이 스크립트들의 출처(골든 이미지 `lekiwi1005`)와 가져온 뒤 고친 내역은 `roboseasy/lekiwi_web_operator` 저장소 기록의 `robot_net/README.md`에 있다 (2026-10 이 저장소로 합침).
